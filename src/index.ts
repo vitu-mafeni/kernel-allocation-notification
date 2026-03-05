@@ -98,6 +98,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         try {
 
+          console.log(`api-server-url: ${apiBase}/api/kernel-status/${kernelId}`);
+
           const response = await fetch(
             `${apiBase}/api/kernel-status/${kernelId}`
           );
@@ -148,7 +150,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
 
             Notification.warning("Issue occurred while starting kernel.", {
-              autoClose: 3000
+              autoClose: false
             });
 
             completed = true;
@@ -166,7 +168,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
 
             Notification.error("Error occurred while starting kernel.", {
-              autoClose: 3000
+              autoClose: false
             });
 
             completed = true;
