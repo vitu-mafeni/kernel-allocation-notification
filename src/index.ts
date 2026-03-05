@@ -1,0 +1,150 @@
+import {
+  JupyterFrontEnd,
+  JupyterFrontEndPlugin
+} from '@jupyterlab/application';
+import { ICommandPalette } from '@jupyterlab/apputils';
+
+import { Notification } from '@jupyterlab/apputils';
+
+import { PromiseDelegate, ReadonlyJSONValue } from '@lumino/coreutils';
+import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
+
+// import { PageConfig } from '@jupyterlab/coreutils';
+
+/**
+ * Initialization data for the kernel-allocation-notification extension.
+ */
+const plugin: JupyterFrontEndPlugin<void> = {
+  id: 'kernel-allocation-notification:plugin',
+  description: 'kernel-allocation-notification',
+  autoStart: true,
+  requires: [ICommandPalette, INotebookTracker],
+  activate: (app: JupyterFrontEnd, palette: ICommandPalette, notebooks: INotebookTracker) => {
+    console.log('kernel-allocation-notification extension activated');
+
+    // Listen for new notebooks
+    notebooks.widgetAdded.connect(
+      (sender: INotebookTracker, notebookPanel: NotebookPanel) => {
+
+        console.log("Notebook opened:", notebookPanel.id);
+        console.log(sender);
+
+        notebookPanel.sessionContext.kernelChanged.connect(() => {
+
+          const kernel = notebookPanel.sessionContext.session?.kernel;
+
+          if (!kernel) {
+            return;
+          }
+
+          const kernelId = kernel.id;
+
+          console.log("Kernel started:", kernelId);
+
+          checkKernelStatus(kernelId);
+        });
+      }
+    );
+
+
+    const command = 'examples-notifications:notify';
+
+    app.commands.addCommand(command, {
+      label: 'Display notifications',
+      execute: () => {
+        Notification.success('Congratulations, you created a notifications.');
+
+        Notification.error('Watch out something went wrong.', {
+          actions: [
+            { label: 'Help', callback: () => alert('This was a fake error.') }
+          ],
+          autoClose: 3000
+        });
+
+        const delegate = new PromiseDelegate<ReadonlyJSONValue>();
+        const delay = 200;
+
+        setTimeout(() => {
+          delegate.resolve({ delay });
+        }, delay);
+
+        Notification.promise(delegate.promise, {
+          pending: { message: 'Waiting...', options: { autoClose: false } },
+          success: {
+            message: (result: any) =>
+              `Action successful after ${result.delay}ms.`
+          },
+          error: { message: () => 'Action failed.' }
+        });
+      }
+    });
+
+
+    async function checkKernelStatus(kernelId: string) {
+
+      let notifiedPending = false;
+      // const settings = ServerConnection.makeSettings();
+
+      // const baseUrl = PageConfig.getBaseUrl();
+
+      const protocol = window.location.protocol;   // http: or https:
+      const hostname = window.location.hostname;   // localhost or domain
+
+      const apiPort = 9000;  // your Kubernetes service exposed port
+
+      const apiBase = `${protocol}//${hostname}:${apiPort}`;
+
+      const interval = setInterval(async () => {
+
+        try {
+          const response = await fetch(
+            `${apiBase}/api/kernel-status/${kernelId}`
+          );
+          // const response = await fetch(`/api/kernel-status/${kernelId}`);
+          //     try {
+          //     // const response = await fetch(`/api/kernel-status/${kernelId}`);
+          //     const response = await ServerConnection.makeRequest(
+          //   `api/kernel-status/${kernelId}`,
+          //   {},
+          //   settings
+          // );
+          const data = await response.json();
+
+          if (data.status === "Pending" && !notifiedPending) {
+
+            Notification.warning(
+              "Your kernel pod is waiting for resources (GPU/CPU).",
+              { autoClose: false }
+            );
+
+            notifiedPending = true;
+          }
+
+          if (data.status === "Running") {
+
+            Notification.success(
+              "Kernel pod successfully started."
+            );
+
+            clearInterval(interval);
+          }
+
+        } catch (err) {
+
+          console.error("Kernel status check failed", err);
+
+        }
+
+      }, 4000);
+    }
+
+    palette.addItem({
+      command,
+      category: 'Notifications'
+    });
+    app.commands.execute('examples-notifications:notify');
+  }
+
+};
+
+export default plugin;

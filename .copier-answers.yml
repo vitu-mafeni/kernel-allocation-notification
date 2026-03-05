@@ -1,0 +1,15 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.5.2
+_src_path: https://github.com/jupyterlab/extension-template
+author_email: vitumafeni@dcn.ssu.ac.kr
+author_name: Vitu Mafeni
+has_ai_rules: false
+has_binder: true
+has_settings: false
+kind: frontend
+labextension_name: kernel-allocation-notification
+project_short_description: kernel-allocation-notification
+python_name: kernel_allocation_notification
+repository: https://github.com/vitu-mafeni/kernel-allocation-notification
+test: false
+
