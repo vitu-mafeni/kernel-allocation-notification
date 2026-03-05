@@ -113,7 +113,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           if (data.status === "Pending" && !notifiedPending) {
 
             pendingNotificationId = Notification.info(
-              "Waiting for resources (GPU/CPU) to be allocated...",
+              "⏳Waiting for resources (GPU/CPU) to be allocated...",
               { autoClose: false }
             );
 
@@ -138,7 +138,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             clearInterval(interval);
           }
 
-          if (data.status === "NotFound") {
+          if (data.status === "NotFound" || data.status === "Unknown" || data.status === "Error" || data.status === "Terminated" || data.status === "Terminating" || data.status === "Crashed") {
 
             if (pendingNotificationId) {
               Notification.dismiss(pendingNotificationId);
