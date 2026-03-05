@@ -6,7 +6,8 @@ import { ICommandPalette } from '@jupyterlab/apputils';
 
 import { Notification } from '@jupyterlab/apputils';
 
-import { PromiseDelegate, ReadonlyJSONValue } from '@lumino/coreutils';
+
+// import { PromiseDelegate, ReadonlyJSONValue } from '@lumino/coreutils';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 
 // import { PageConfig } from '@jupyterlab/coreutils';
@@ -49,82 +50,126 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     const command = 'examples-notifications:notify';
 
-    app.commands.addCommand(command, {
-      label: 'Display notifications',
-      execute: () => {
-        Notification.success('Congratulations, you created a notifications.');
+    // app.commands.addCommand(command, {
+    //   label: 'Display notifications',
+    //   execute: () => {
+    //     // Notification.success('Congratulations, you created a notifications.');
 
-        Notification.error('Watch out something went wrong.', {
-          actions: [
-            { label: 'Help', callback: () => alert('This was a fake error.') }
-          ],
-          autoClose: 3000
-        });
+    //     // Notification.error('Watch out something went wrong.', {
+    //     //   actions: [
+    //     //     { label: 'Help', callback: () => alert('This was a fake error.') }
+    //     //   ],
+    //     //   autoClose: 3000
+    //     // });
 
-        const delegate = new PromiseDelegate<ReadonlyJSONValue>();
-        const delay = 200;
+    //     const delegate = new PromiseDelegate<ReadonlyJSONValue>();
+    //     const delay = 200;
 
-        setTimeout(() => {
-          delegate.resolve({ delay });
-        }, delay);
+    //     setTimeout(() => {
+    //       delegate.resolve({ delay });
+    //     }, delay);
 
-        Notification.promise(delegate.promise, {
-          pending: { message: 'Waiting...', options: { autoClose: false } },
-          success: {
-            message: (result: any) =>
-              `Action successful after ${result.delay}ms.`
-          },
-          error: { message: () => 'Action failed.' }
-        });
-      }
-    });
+    //     Notification.promise(delegate.promise, {
+    //       pending: { message: 'Waiting...', options: { autoClose: false } },
+    //       success: {
+    //         message: (result: any) =>
+    //           `Action successful after ${result.delay}ms.`
+    //       },
+    //       error: { message: () => 'Action failed.' }
+    //     });
+    //   }
+    // });
 
 
     async function checkKernelStatus(kernelId: string) {
 
       let notifiedPending = false;
-      // const settings = ServerConnection.makeSettings();
+      let completed = false;
+      let pendingNotificationId: string | undefined;
 
-      // const baseUrl = PageConfig.getBaseUrl();
 
-      const protocol = window.location.protocol;   // http: or https:
-      const hostname = window.location.hostname;   // localhost or domain
-
-      const apiPort = 9000;  // your Kubernetes service exposed port
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      const apiPort = 9000;
 
       const apiBase = `${protocol}//${hostname}:${apiPort}`;
 
       const interval = setInterval(async () => {
 
         try {
+
           const response = await fetch(
             `${apiBase}/api/kernel-status/${kernelId}`
           );
-          // const response = await fetch(`/api/kernel-status/${kernelId}`);
-          //     try {
-          //     // const response = await fetch(`/api/kernel-status/${kernelId}`);
-          //     const response = await ServerConnection.makeRequest(
-          //   `api/kernel-status/${kernelId}`,
-          //   {},
-          //   settings
-          // );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+          }
+
           const data = await response.json();
+
+          console.log("Kernel status:", data);
 
           if (data.status === "Pending" && !notifiedPending) {
 
-            Notification.warning(
-              "Your kernel pod is waiting for resources (GPU/CPU).",
+            pendingNotificationId = Notification.info(
+              "Waiting for resources (GPU/CPU) to be allocated...",
               { autoClose: false }
             );
 
             notifiedPending = true;
           }
 
-          if (data.status === "Running") {
+          if (data.status === "Running" && !completed) {
 
-            Notification.success(
-              "Kernel pod successfully started."
-            );
+            if (pendingNotificationId) {
+              Notification.dismiss(pendingNotificationId);
+            }
+            // Clear previous notifications
+            Notification.dismiss();
+
+
+            Notification.success("Kernel pod successfully started.", {
+              autoClose: 3000
+            });
+
+            completed = true;
+
+            clearInterval(interval);
+          }
+
+          if (data.status === "NotFound") {
+
+            if (pendingNotificationId) {
+              Notification.dismiss(pendingNotificationId);
+            }
+            // Clear previous notifications
+            Notification.dismiss();
+
+
+            Notification.warning("Issue occurred while starting kernel.", {
+              autoClose: 3000
+            });
+
+            completed = true;
+
+            clearInterval(interval);
+          }
+
+          if (data.status === "Failed") {
+
+            if (pendingNotificationId) {
+              Notification.dismiss(pendingNotificationId);
+            }
+            // Clear previous notifications
+            Notification.dismiss();
+
+
+            Notification.error("Error occurred while starting kernel.", {
+              autoClose: 3000
+            });
+
+            completed = true;
 
             clearInterval(interval);
           }
@@ -142,7 +187,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       command,
       category: 'Notifications'
     });
-    app.commands.execute('examples-notifications:notify');
+    // app.commands.execute('examples-notifications:notify');
   }
 
 };
