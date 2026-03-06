@@ -1,16 +1,23 @@
-FROM kubeflownotebookswg/jupyter-scipy:v1.8.0
+FROM ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.10.0
 
 USER root
 
-RUN pip install jupyterlab
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Copy extension with correct ownership
+COPY --chown=jovyan:users . /opt/my-extension
+
+WORKDIR /opt/my-extension
 
 USER jovyan
 
-WORKDIR /home/jovyan
+# install dependencies and build extension
+RUN jlpm install
+RUN jlpm build
 
-COPY kernel-allocation-notification /tmp/ext
+# install python package
+RUN pip install -e .
 
-RUN cd /tmp/ext \
-    && jlpm install \
-    && jlpm build \
-    && jupyter labextension install .
+RUN npm run build
+RUN jupyter labextension develop . --overwrite
