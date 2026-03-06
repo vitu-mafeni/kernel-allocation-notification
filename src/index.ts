@@ -29,6 +29,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         console.log("Notebook opened:", notebookPanel.id);
         console.log(sender);
+        let firstKernelEvent = true;
 
         notebookPanel.sessionContext.kernelChanged.connect(() => {
 
@@ -41,8 +42,47 @@ const plugin: JupyterFrontEndPlugin<void> = {
           const kernelId = kernel.id;
 
           console.log("Kernel started:", kernelId);
-
+          // Skip the first kernel (initial notebook kernel)
+          if (firstKernelEvent) {
+            console.log("Initial kernel detected — skipping API check");
+            firstKernelEvent = false;
+            return;
+          }
+          console.log("User changed kernel:", kernelId);
           checkKernelStatus(kernelId);
+        });
+
+        // Detect restart events
+        notebookPanel.sessionContext.statusChanged.connect((_, status) => {
+
+          const kernel = notebookPanel.sessionContext.session?.kernel;
+
+          if (!kernel) {
+            return;
+          }
+
+          const kernelId = kernel.id;
+
+          console.log("Kernel status:", status);
+
+          if (status === "restarting") {
+
+            console.log("Kernel restarting:", kernelId);
+
+            Notification.info("🔄 Kernel is restarting...", {
+              autoClose: 3000
+            });
+
+          }
+
+          if (status === "starting") {
+
+            console.log("Kernel starting:", kernelId);
+
+            checkKernelStatus(kernelId);
+
+          }
+
         });
       }
     );
