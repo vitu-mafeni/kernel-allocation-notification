@@ -189,9 +189,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
             Notification.dismiss();
 
 
-            Notification.warning("Issue occurred while starting kernel.", {
-              autoClose: false
-            });
+            // Notification.warning("Issue occurred while starting kernel.", {
+            //   autoClose: false
+            // });
 
             completed = true;
 
