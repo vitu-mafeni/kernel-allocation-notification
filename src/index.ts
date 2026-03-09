@@ -162,7 +162,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             notifiedPending = true;
           }
 
-          if (data.status === "Running" && !completed) {
+          if (data.status === "Running" || data.status === "Starting" && !completed) {
 
             if (pendingNotificationId) {
               Notification.dismiss(pendingNotificationId);
@@ -171,7 +171,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             Notification.dismiss();
 
 
-            Notification.success("Kernel pod successfully started.", {
+            Notification.success("Kernel is running...", {
               autoClose: 3000
             });
 
@@ -188,7 +188,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             // Clear previous notifications
             Notification.dismiss();
 
-
+            console.error("Kernel failed to start or pod wasn't found, skipping any further actions. Status:", data.status); 
             // Notification.warning("Issue occurred while starting kernel.", {
             //   autoClose: false
             // });
