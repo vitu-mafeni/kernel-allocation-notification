@@ -130,7 +130,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       const protocol = window.location.protocol;
       const hostname = window.location.hostname;
-      const apiPort = 9000;
+      const apiPort = 30901;
 
       const apiBase = `${protocol}//${hostname}:${apiPort}`;
 
