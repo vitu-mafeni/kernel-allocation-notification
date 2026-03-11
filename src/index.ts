@@ -40,6 +40,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     let pendingPodsInterval: number | null = null;
     let pendingNotificationId: string | undefined;
+    let lastPendingCount: number | null = null;
+
 
     startPendingPodsWatcher(username);
 
@@ -397,7 +399,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         try {
 
           const response = await fetch(
-            `${apiBase}/api/user-pending/${username}`
+            `${apiBase}/api/user-pending-pods/${username}`
           );
 
           if (!response.ok) {
@@ -407,10 +409,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
           const data = await response.json();
 
           const pending = data.pending;
-          const total = data.total;
+          // const total = data.total;
 
-          console.log("User pending pods:", pending);
-          console.log("Total pods:", total);
+          // console.log("User pending pods:", pending);
+          // console.log("Total pods:", total);
+          // If value didn't change -> do nothing
+          if (pending === lastPendingCount) {
+            return;
+          }
+
+          lastPendingCount = pending;
 
           if (pending > 0) {
 
@@ -449,21 +457,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }, 5000); // every 5 seconds
     }
 
-  /*
-    function stopPendingPodsWatcher() {
-
-      if (pendingPodsInterval) {
-        clearInterval(pendingPodsInterval);
-        pendingPodsInterval = null;
+    /*
+      function stopPendingPodsWatcher() {
+  
+        if (pendingPodsInterval) {
+          clearInterval(pendingPodsInterval);
+          pendingPodsInterval = null;
+        }
+  
+        if (pendingNotificationId) {
+          Notification.dismiss(pendingNotificationId);
+          pendingNotificationId = undefined;
+        }
+  
       }
-
-      if (pendingNotificationId) {
-        Notification.dismiss(pendingNotificationId);
-        pendingNotificationId = undefined;
-      }
-
-    }
-  */
+    */
 
 
     palette.addItem({
